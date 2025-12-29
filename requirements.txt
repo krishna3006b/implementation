@@ -1,0 +1,7 @@
+streamlit
+numpy
+pickle-mixin
+streamlit-option-menu
+scikit-learn
+xgboost
+pandas
