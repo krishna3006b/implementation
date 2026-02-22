@@ -2,8 +2,8 @@
 
 A full-stack machine learning application that predicts heart disease risk using clinical parameters. Built as a **Final Year Major Project**.
 
-> **Live API** → [web-production-a175a.up.railway.app](https://web-production-a175a.up.railway.app/api/health)
-
+> **Live Frotend API** → [implementation-nu.vercel.app](https://implementation-nu.vercel.app)
+> **Live Backend API** → [web-production-a175a.up.railway.app](https://web-production-a175a.up.railway.app/api/health)
 ---
 
 ## 🎯 Overview
