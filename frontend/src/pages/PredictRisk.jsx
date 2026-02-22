@@ -29,20 +29,20 @@ const thallOptions = [
 
 const testPresets = [
   {
-    label: '💚 Healthy Young Male (Low Risk)',
-    data: { age: 35, sex: 1, cp: 0, trtbps: 126, chol: 282, fbs: 0, restecg: 0, thalachh: 156, exng: 1, oldpeak: 0, slp: 2, caa: 0, thall: 3 },
+    label: '💚 35yo Male — No Risk (cp=Asymptomatic, thall=Reversible Defect)',
+    data: { age: 35, sex: 1, cp: 0, trtbps: 120, chol: 198, fbs: 0, restecg: 1, thalachh: 130, exng: 1, oldpeak: 1.6, slp: 1, caa: 0, thall: 3 },
   },
   {
-    label: '💚 Healthy Female (Low Risk)',
+    label: '💚 39yo Male — No Risk (cp=Asymptomatic, thall=Reversible Defect)',
+    data: { age: 39, sex: 1, cp: 0, trtbps: 118, chol: 219, fbs: 0, restecg: 1, thalachh: 140, exng: 0, oldpeak: 1.2, slp: 1, caa: 0, thall: 3 },
+  },
+  {
+    label: '⚠️ 63yo Male — High Risk (cp=Typical Angina, thall=Fixed Defect)',
+    data: { age: 63, sex: 1, cp: 3, trtbps: 145, chol: 233, fbs: 1, restecg: 0, thalachh: 150, exng: 0, oldpeak: 2.3, slp: 0, caa: 0, thall: 1 },
+  },
+  {
+    label: '⚠️ 39yo Female — High Risk (cp=Non-Anginal, thall=Normal)',
     data: { age: 39, sex: 0, cp: 2, trtbps: 94, chol: 199, fbs: 0, restecg: 1, thalachh: 179, exng: 0, oldpeak: 0, slp: 2, caa: 0, thall: 2 },
-  },
-  {
-    label: '⚠️ Older Male with Angina (High Risk)',
-    data: { age: 67, sex: 1, cp: 0, trtbps: 160, chol: 286, fbs: 0, restecg: 0, thalachh: 108, exng: 1, oldpeak: 1.5, slp: 1, caa: 3, thall: 2 },
-  },
-  {
-    label: '⚠️ Male with High Oldpeak (High Risk)',
-    data: { age: 55, sex: 1, cp: 0, trtbps: 140, chol: 217, fbs: 0, restecg: 1, thalachh: 111, exng: 1, oldpeak: 5.6, slp: 0, caa: 0, thall: 3 },
   },
 ]
 
