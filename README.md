@@ -173,4 +173,4 @@ This application is developed for **educational and research purposes** as part 
 
 ---
 
-**Final Year Major Project** · Heart Attack Prediction using Machine Learning · © 2024–2025
+**Final Year Major Project** · Heart Attack Prediction using Machine Learning · © 2025–2026
