@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import './PredictRisk.css'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
@@ -47,6 +49,7 @@ const testPresets = [
 ]
 
 export default function PredictRisk() {
+  const { user } = useAuth()
   const [form, setForm] = useState({
     age: 45, sex: 1, cp: 0, trtbps: 120, chol: 200,
     fbs: 0, restecg: 0, thalachh: 150, exng: 0,
@@ -231,6 +234,16 @@ export default function PredictRisk() {
           </p>
           <hr className="divider" />
           <p className="result-meta">Model Confidence: {result.confidence}% · Model: {result.model_name}</p>
+          {!user && (
+            <Link to="/login" className="cta-banner">
+              🏃 Sign up to track daily health goals & build healthy streaks →
+            </Link>
+          )}
+          {user && (
+            <Link to="/lifestyle" className="cta-banner cta-go">
+              📋 Go to your Lifestyle Dashboard →
+            </Link>
+          )}
         </div>
       )}
     </div>
