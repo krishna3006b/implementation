@@ -27,6 +27,25 @@ const thallOptions = [
   { label: 'Unknown', value: 0 },
 ]
 
+const testPresets = [
+  {
+    label: '💚 Healthy Young Male (Low Risk)',
+    data: { age: 29, sex: 1, cp: 1, trtbps: 130, chol: 204, fbs: 0, restecg: 0, thalachh: 202, exng: 0, oldpeak: 0, slp: 2, caa: 0, thall: 2 },
+  },
+  {
+    label: '💚 Healthy Female (Low Risk)',
+    data: { age: 39, sex: 0, cp: 2, trtbps: 94, chol: 199, fbs: 0, restecg: 1, thalachh: 179, exng: 0, oldpeak: 0, slp: 2, caa: 0, thall: 2 },
+  },
+  {
+    label: '⚠️ Older Male with Angina (High Risk)',
+    data: { age: 67, sex: 1, cp: 0, trtbps: 160, chol: 286, fbs: 0, restecg: 0, thalachh: 108, exng: 1, oldpeak: 1.5, slp: 1, caa: 3, thall: 2 },
+  },
+  {
+    label: '⚠️ Male with High Oldpeak (High Risk)',
+    data: { age: 55, sex: 1, cp: 0, trtbps: 140, chol: 217, fbs: 0, restecg: 1, thalachh: 111, exng: 1, oldpeak: 5.6, slp: 0, caa: 0, thall: 3 },
+  },
+]
+
 export default function PredictRisk() {
   const [form, setForm] = useState({
     age: 45, sex: 1, cp: 0, trtbps: 120, chol: 200,
@@ -41,6 +60,13 @@ export default function PredictRisk() {
   const set = (key, raw) => {
     const v = typeof raw === 'string' ? (raw.includes('.') ? parseFloat(raw) : parseInt(raw, 10)) : raw
     setForm(prev => ({ ...prev, [key]: isNaN(v) ? raw : v }))
+  }
+
+  const applyPreset = (index) => {
+    if (index === '') return
+    setForm(testPresets[index].data)
+    setResult(null)
+    setError('')
   }
 
   const predict = async () => {
@@ -83,6 +109,15 @@ export default function PredictRisk() {
 
       <div className="warning-banner">
         ⚠️ <strong>Disclaimer:</strong> This is NOT a medical diagnosis. Always consult a healthcare provider.
+      </div>
+
+      <div className="preset-bar">
+        <label className="preset-label">⚡ Quick Fill Test Case
+          <select className="preset-select" defaultValue="" onChange={e => applyPreset(e.target.value)}>
+            <option value="" disabled>Select a test case...</option>
+            {testPresets.map((p, i) => <option key={i} value={i}>{p.label}</option>)}
+          </select>
+        </label>
       </div>
 
       <div className="form-grid">
@@ -160,7 +195,7 @@ export default function PredictRisk() {
         </label>
         <label>Major Vessels (0-3)
           <select value={form.caa} onChange={e => set('caa', e.target.value)}>
-            {[0,1,2,3].map(v => <option key={v} value={v}>{v}</option>)}
+            {[0, 1, 2, 3].map(v => <option key={v} value={v}>{v}</option>)}
           </select>
         </label>
         <label>Thalassemia
