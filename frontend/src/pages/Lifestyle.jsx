@@ -346,7 +346,25 @@ export default function Lifestyle() {
         return 'heat-3'
     }
 
-
+    const useStreakFreeze = async () => {
+        if (!streak.freezes || streak.freezes <= 0) return
+        try {
+            const res = await fetch(`${API_BASE}/api/tracker/streak/freeze`, {
+                method: 'POST', headers,
+            })
+            const data = await res.json()
+            if (data.success) {
+                const streakRes = await fetch(`${API_BASE}/api/tracker/streak`, { headers })
+                const streakData = await streakRes.json()
+                setStreak(streakData)
+                alert(`🧊 Streak Freeze used for ${data.date_frozen}! Your streak is protected.`)
+            } else {
+                alert(data.error || 'Could not use freeze.')
+            }
+        } catch (e) {
+            console.error('Failed to use freeze:', e)
+        }
+    }
 
     const streakMessage = streak.current_streak >= 30 ? '🏆 Legendary! Keep it going!'
         : streak.current_streak >= 14 ? '🔥 On fire! Two week streak!'
@@ -559,6 +577,15 @@ export default function Lifestyle() {
                                     <div className="streak-item-mini" title="Best Streak">
                                         <span className="streak-number-mini">{streak.longest_streak}</span>
                                         <span className="streak-label-mini">🏆</span>
+                                    </div>
+                                    <div
+                                        className={`streak-item-mini freeze-item ${streak.freezes > 0 ? 'has-freezes' : ''}`}
+                                        title={streak.freezes > 0 ? 'Click to use a Streak Freeze for yesterday' : 'Earn freezes by reaching 7-day streaks'}
+                                        onClick={streak.freezes > 0 ? useStreakFreeze : undefined}
+                                        style={streak.freezes > 0 ? { cursor: 'pointer' } : {}}
+                                    >
+                                        <span className="streak-number-mini">{streak.freezes || 0}</span>
+                                        <span className="streak-label-mini">🧊</span>
                                     </div>
                                 </div>
                             </div>

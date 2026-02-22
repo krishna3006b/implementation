@@ -145,7 +145,7 @@ def update_today():
 
 @tracker_bp.route("/api/tracker/streak", methods=["GET"])
 def get_streak():
-    """Calculate current streak and longest streak."""
+    """Calculate current streak, longest streak, and streak freeze tokens."""
     user_id, err = require_auth()
     if err:
         return err
@@ -159,23 +159,45 @@ def get_streak():
         ).sort("date", -1)
     )
 
+    # Fetch or initialize streak freeze data
+    streak_doc = db.streak_data.find_one({"user_id": ObjectId(user_id)}) or {}
+    freezes_available: int = int(streak_doc.get("freezes_available", 0))
+    freezes_used: list = list(streak_doc.get("freezes_used", []))
+    freezes_earned_at: list = list(streak_doc.get("freezes_earned_at", []))
+
     if not logs:
-        return jsonify({"current_streak": 0, "longest_streak": 0, "total_days_tracked": 0})
+        return jsonify({
+            "current_streak": 0, "longest_streak": 0,
+            "total_days_tracked": 0, "freezes": freezes_available,
+            "freezes_used": freezes_used
+        })
 
     good_days = {log["date"] for log in logs if log.get("completion_pct", 0) >= 80}
+    frozen_days = set(freezes_used)
 
+    # Calculate current streak (good days + frozen days count as streak)
     current_streak = 0
     check_date = datetime.now(IST).date()
-    if check_date.strftime("%Y-%m-%d") not in good_days:
-        check_date -= timedelta(days=1)
-    while check_date.strftime("%Y-%m-%d") in good_days:
-        current_streak += 1
+    today_str_val = check_date.strftime("%Y-%m-%d")
+
+    # If today isn't tracked yet, start from yesterday
+    if today_str_val not in good_days and today_str_val not in frozen_days:
         check_date -= timedelta(days=1)
 
-    if not good_days:
+    while True:
+        ds = check_date.strftime("%Y-%m-%d")
+        if ds in good_days or ds in frozen_days:
+            current_streak += 1
+            check_date -= timedelta(days=1)
+        else:
+            break
+
+    # Calculate longest streak (including frozen days)
+    all_streak_days = good_days | frozen_days
+    if not all_streak_days:
         longest_streak = 0
     else:
-        sorted_dates = sorted(good_days)
+        sorted_dates = sorted(all_streak_days)
         longest_streak = 1
         run = 1
         for i in range(1, len(sorted_dates)):
@@ -187,12 +209,32 @@ def get_streak():
             else:
                 run = 1
 
+    # Auto-award freeze tokens: 1 per 7-day streak milestone
+    new_freezes = 0
+    milestones_to_award = []
+    for milestone in [7, 14, 21, 28, 35, 42, 49, 56, 63, 70]:
+        if current_streak >= milestone and milestone not in freezes_earned_at:
+            new_freezes += 1
+            milestones_to_award.append(milestone)
+
+    if new_freezes > 0:
+        freezes_available += new_freezes
+        freezes_earned_at.extend(milestones_to_award)
+        db.streak_data.update_one(
+            {"user_id": ObjectId(user_id)},
+            {"$set": {
+                "freezes_available": freezes_available,
+                "freezes_earned_at": freezes_earned_at,
+            }},
+            upsert=True,
+        )
+
+    # Badges
     badges = []
     if len(logs) >= 1:
         badges.append({"id": "first_step", "name": "First Step", "icon": "🌱", "desc": "Tracked your first day"})
     if len(logs) >= 10:
         badges.append({"id": "consistent_10", "name": "Consistent 10", "icon": "📅", "desc": "Tracked 10 total days"})
-        
     if longest_streak >= 3:
         badges.append({"id": "warrior_3", "name": "3-Day Warrior", "icon": "💪", "desc": "Achieved a 3-day streak"})
     if longest_streak >= 7:
@@ -201,10 +243,56 @@ def get_streak():
         badges.append({"id": "champion_14", "name": "Fortitude", "icon": "🔥", "desc": "Achieved a 14-day streak"})
     if longest_streak >= 30:
         badges.append({"id": "legend_30", "name": "Legend", "icon": "🏆", "desc": "Achieved a 30-day streak"})
+    if freezes_available > 0 or len(freezes_used) > 0:
+        badges.append({"id": "freeze_holder", "name": "Ice Shield", "icon": "🧊", "desc": "Earned a Streak Freeze"})
 
     return jsonify({
         "current_streak": current_streak,
         "longest_streak": longest_streak,
         "total_days_tracked": len(logs),
-        "badges": badges
+        "badges": badges,
+        "freezes": freezes_available,
+        "freezes_used": freezes_used,
     })
+
+
+@tracker_bp.route("/api/tracker/streak/freeze", methods=["POST"])
+def use_streak_freeze():
+    """Use a streak freeze to protect yesterday's missed day."""
+    user_id, err = require_auth()
+    if err:
+        return err
+
+    db = get_db()
+    streak_doc = db.streak_data.find_one({"user_id": ObjectId(user_id)})
+    if not streak_doc or streak_doc.get("freezes_available", 0) <= 0:
+        return jsonify({"error": "No streak freezes available"}), 400
+
+    # The freeze covers yesterday
+    yesterday = (datetime.now(IST) - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    # Check if yesterday is already a good day
+    log = db.daily_logs.find_one({"user_id": ObjectId(user_id), "date": yesterday})
+    if log and log.get("completion_pct", 0) >= 80:
+        return jsonify({"error": "Yesterday was already a good day — no freeze needed"}), 400
+
+    # Check if freeze already used for this date
+    used = streak_doc.get("freezes_used", [])
+    if yesterday in used:
+        return jsonify({"error": "Freeze already used for this date"}), 400
+
+    used.append(yesterday)
+    db.streak_data.update_one(
+        {"user_id": ObjectId(user_id)},
+        {"$set": {
+            "freezes_available": streak_doc["freezes_available"] - 1,
+            "freezes_used": used,
+        }},
+    )
+
+    return jsonify({
+        "success": True,
+        "date_frozen": yesterday,
+        "freezes_remaining": streak_doc["freezes_available"] - 1,
+    })
+
