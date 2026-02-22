@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useAuth } from '../context/AuthContext'
 import './Lifestyle.css'
 
@@ -11,6 +11,31 @@ const MOODS = [
     { value: 'bad', emoji: '😞', label: 'Bad' },
     { value: 'terrible', emoji: '😣', label: 'Terrible' },
 ]
+
+const HabitSpark = ({ streak, completionPct }) => {
+    let sparkClass = 'spark-0'
+    let sparkTitle = 'Spark is sleeping. Complete goals to wake it up!'
+    if (streak >= 7) {
+        sparkClass = 'spark-3'
+        sparkTitle = 'Spark is blazing! You are unstoppable!'
+    } else if (streak >= 3) {
+        sparkClass = 'spark-2'
+        sparkTitle = 'Spark is glowing! Keep the momentum!'
+    } else if (streak >= 1 || completionPct >= 80) {
+        sparkClass = 'spark-1'
+        sparkTitle = 'Spark is awakening. Stay consistent!'
+    }
+
+    return (
+        <div className={`habit-spark-container`} title={sparkTitle}>
+            <div className={`habit-spark ${sparkClass}`}>
+                <div className="spark-core"></div>
+                <div className="spark-aura"></div>
+                <div className="spark-particles">✧</div>
+            </div>
+        </div>
+    )
+}
 
 export default function Lifestyle() {
     const { user, token } = useAuth()
@@ -36,6 +61,8 @@ export default function Lifestyle() {
     const [aiTipLoading, setAiTipLoading] = useState(false)
     const [aiInsights, setAiInsights] = useState('')
     const [aiInsightsLoading, setAiInsightsLoading] = useState(false)
+    const [quest, setQuest] = useState(null)
+    const [questLoading, setQuestLoading] = useState(false)
     const [chatOpen, setChatOpen] = useState(false)
     const [chatMessages, setChatMessages] = useState([])
     const [chatInput, setChatInput] = useState('')
@@ -43,14 +70,24 @@ export default function Lifestyle() {
     const chatEndRef = useRef(null)
     const saveTimer = useRef(null)
 
-    const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+    // Voice-First Logging states
+    const [listening, setListening] = useState(false)
+    const [transcript, setTranscript] = useState('')
+    const [voiceLoading, setVoiceLoading] = useState(false)
+
+    // AI Persona states
+    const [persona, setPersona] = useState('supportive')
+    const [personas, setPersonas] = useState([])
+    const [personaLoading, setPersonaLoading] = useState(false)
+
+    const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
 
     const fetchAll = useCallback(async () => {
         try {
             const [goalsRes, streakRes, logsRes] = await Promise.all([
                 fetch(`${API_BASE}/api/goals`, { headers }),
                 fetch(`${API_BASE}/api/tracker/streak`, { headers }),
-                fetch(`${API_BASE}/api/tracker?month=${currentMonth}`, { headers }),
+                fetch(`${API_BASE}/api/tracker?days=60`, { headers }),
             ])
             const goalsData = await goalsRes.json()
             const streakData = await streakRes.json()
@@ -60,7 +97,11 @@ export default function Lifestyle() {
             setStreak(streakData)
             setCalendarLogs(logsData.logs || [])
 
-            const today = new Date().toISOString().slice(0, 10)
+            // Use IST (UTC+5:30) to match backend date calculations
+            const now = new Date()
+            const istOffset = 5.5 * 60 * 60 * 1000
+            const istDate = new Date(now.getTime() + istOffset)
+            const today = istDate.toISOString().slice(0, 10)
             const todayLog = (logsData.logs || []).find(l => l.date === today)
             setCompleted(todayLog?.completed || [])
             setValues(todayLog?.values || {})
@@ -93,7 +134,7 @@ export default function Lifestyle() {
             })
             const [streakRes, logsRes] = await Promise.all([
                 fetch(`${API_BASE}/api/tracker/streak`, { headers }),
-                fetch(`${API_BASE}/api/tracker?month=${currentMonth}`, { headers }),
+                fetch(`${API_BASE}/api/tracker?days=60`, { headers }),
             ])
             setStreak(await streakRes.json())
             const logsData = await logsRes.json()
@@ -191,6 +232,77 @@ export default function Lifestyle() {
         finally { setAiInsightsLoading(false) }
     }
 
+    const fetchQuest = useCallback(async () => {
+        setQuestLoading(true)
+        try {
+            const res = await fetch(`${API_BASE}/api/ai/quest`, { method: 'POST', headers })
+            const data = await res.json()
+            if (data.quest) {
+                setQuest({ ...data.quest, completed: data.completed })
+            }
+        } catch (e) { console.error('Failed to fetch quest:', e) }
+        finally { setQuestLoading(false) }
+    }, [headers])
+
+    useEffect(() => {
+        // Fetch the daily quest automatically when page loads
+        if (token) fetchQuest()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token])
+
+    useEffect(() => {
+        const loadPersonas = async () => {
+            try {
+                const res = await fetch(`${API_BASE}/api/ai/persona`, { headers })
+                const data = await res.json()
+                setPersonas(data.personas || [])
+                setPersona(data.current || 'supportive')
+            } catch (e) { console.error('Failed to fetch personas:', e) }
+        }
+        if (token) loadPersonas()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token])
+
+    const completeQuest = async () => {
+        if (!quest || quest.completed) return
+
+        // Optimistically complete
+        setQuest({ ...quest, completed: true })
+
+        // Trigger massive confetti
+        import('canvas-confetti').then((confetti) => {
+            const duration = 3000;
+            const end = Date.now() + duration;
+
+            (function frame() {
+                confetti.default({
+                    particleCount: 5,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 },
+                    colors: ['#ffeb3b', '#ff6b9d', '#00f0ff']
+                });
+                confetti.default({
+                    particleCount: 5,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 },
+                    colors: ['#ffeb3b', '#ff6b9d', '#00f0ff']
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        });
+
+        try {
+            await fetch(`${API_BASE}/api/ai/quest/complete`, { method: 'POST', headers })
+        } catch (e) {
+            console.error('Failed to complete quest:', e)
+        }
+    }
+
     const sendChat = async (e) => {
         e.preventDefault()
         if (!chatInput.trim() || chatLoading) return
@@ -211,24 +323,18 @@ export default function Lifestyle() {
         } finally { setChatLoading(false) }
     }
 
-    const changeMonth = (delta) => {
-        const [y, m] = currentMonth.split('-').map(Number)
-        const d = new Date(y, m - 1 + delta, 1)
-        setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
-        setSelectedDay(null)
-    }
-
-    const buildCalendar = () => {
-        const [year, month] = currentMonth.split('-').map(Number)
-        const firstDay = new Date(year, month - 1, 1).getDay()
-        const daysInMonth = new Date(year, month, 0).getDate()
+    const buildHeatmap = () => {
+        const cells = []
         const logMap = {}
         calendarLogs.forEach(l => { logMap[l.date] = l })
-        const cells = []
-        for (let i = 0; i < firstDay; i++) cells.push(null)
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateStr = `${currentMonth}-${String(d).padStart(2, '0')}`
-            cells.push({ day: d, date: dateStr, log: logMap[dateStr] || null })
+        const istOffset = 5.5 * 60 * 60 * 1000
+
+        for (let i = 59; i >= 0; i--) {
+            const d = new Date()
+            d.setDate(d.getDate() - i)
+            const istDate = new Date(d.getTime() + istOffset)
+            const dateStr = istDate.toISOString().slice(0, 10)
+            cells.push({ date: dateStr, log: logMap[dateStr] || null })
         }
         return cells
     }
@@ -240,10 +346,7 @@ export default function Lifestyle() {
         return 'heat-3'
     }
 
-    const monthLabel = (() => {
-        const [y, m] = currentMonth.split('-').map(Number)
-        return new Date(y, m - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-    })()
+
 
     const streakMessage = streak.current_streak >= 30 ? '🏆 Legendary! Keep it going!'
         : streak.current_streak >= 14 ? '🔥 On fire! Two week streak!'
@@ -264,77 +367,248 @@ export default function Lifestyle() {
         '🧘 Stress management techniques',
     ]
 
+    // Voice-First Logging
+    const startVoiceLog = () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+        if (!SpeechRecognition) {
+            alert('Speech recognition is not supported in your browser. Try Chrome.')
+            return
+        }
+        const recognition = new SpeechRecognition()
+        recognition.lang = 'en-US'
+        recognition.continuous = false
+        recognition.interimResults = false
+        recognition.maxAlternatives = 1
+
+        setListening(true)
+        setTranscript('')
+
+        recognition.onresult = (event) => {
+            const text = event.results[0][0].transcript
+            setTranscript(text)
+            setListening(false)
+            sendTranscript(text)
+        }
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error)
+            setListening(false)
+            if (event.error === 'not-allowed') {
+                alert('Microphone access denied. Please allow microphone permissions in your browser settings.')
+            } else if (event.error === 'no-speech') {
+                alert('No speech detected. Please try again and speak clearly.')
+            }
+        }
+
+        recognition.onend = () => setListening(false)
+
+        try {
+            recognition.start()
+        } catch (e) {
+            console.error('Failed to start recognition:', e)
+            setListening(false)
+        }
+    }
+
+    const sendTranscript = async (text) => {
+        setVoiceLoading(true)
+        try {
+            const res = await fetch(`${API_BASE}/api/ai/parse-log`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ transcript: text }),
+            })
+            const data = await res.json()
+            if (data.parsed) {
+                const p = data.parsed
+                if (p.completed) setCompleted(prev => [...new Set([...prev, ...p.completed])])
+                if (p.values) setValues(prev => ({ ...prev, ...p.values }))
+                if (p.mood) setMood(p.mood)
+                if (p.energy) setEnergy(p.energy)
+                if (p.notes) setNotes(prev => prev ? prev + '\n' + p.notes : p.notes)
+                // Auto-save after voice parse
+                setTimeout(() => {
+                    saveTracking(
+                        p.completed ? [...new Set([...completed, ...p.completed])] : completed,
+                        p.values ? { ...values, ...p.values } : values,
+                        p.mood || mood,
+                        p.energy || energy,
+                        p.notes ? (notes ? notes + '\n' + p.notes : p.notes) : notes
+                    )
+                }, 300)
+            }
+        } catch (e) {
+            console.error('Voice parse failed:', e)
+        } finally {
+            setVoiceLoading(false)
+        }
+    }
+
+    // AI Persona
+    const fetchPersonas = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/ai/persona`, { headers })
+            const data = await res.json()
+            setPersonas(data.personas || [])
+            setPersona(data.current || 'supportive')
+        } catch (e) { console.error('Failed to fetch personas:', e) }
+    }
+
+    const setPersonaChoice = async (id) => {
+        setPersonaLoading(true)
+        try {
+            await fetch(`${API_BASE}/api/ai/persona`, {
+                method: 'POST', headers,
+                body: JSON.stringify({ persona: id }),
+            })
+            setPersona(id)
+            setAiTip('') // Clear old tip so new persona generates fresh
+        } catch (e) { console.error('Failed to set persona:', e) }
+        finally { setPersonaLoading(false) }
+    }
+
     // SVG ring params
     const ringR = 52
     const ringC = 2 * Math.PI * ringR
     const ringOffset = ringC - (completionPct / 100) * ringC
 
+    const hour = new Date().getHours()
+    const greeting = hour < 12 ? '☀️ Good Morning' : hour < 18 ? '🌤️ Good Afternoon' : '🌙 Good Evening'
+
+    const sortedGoals = [...goals].sort((a, b) => {
+        const aDone = completed.includes(a.id)
+        const bDone = completed.includes(b.id)
+        if (aDone === bDone) return 0
+        return aDone ? 1 : -1
+    })
+
+    const todayIST = (() => { const n = new Date(); return new Date(n.getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 10) })()
+    const isToday = !selectedDay || selectedDay === todayIST
+
     return (
         <div className="lifestyle-page">
-            <h1 className="page-title">🏃 Lifestyle Dashboard</h1>
-            <p className="page-subtitle">Hey {user?.name?.split(' ')[0]}! Track your daily health goals</p>
-
-            {/* Top Stats Row */}
-            <div className="top-stats">
-                {/* Completion Ring */}
-                <div className="completion-ring-wrap">
-                    <svg viewBox="0 0 120 120" className="completion-ring">
-                        <circle cx="60" cy="60" r={ringR} stroke="rgba(255,255,255,0.06)" strokeWidth="8" fill="none" />
-                        <circle
-                            cx="60" cy="60" r={ringR}
-                            stroke={completionPct >= 80 ? '#00ffaa' : completionPct >= 50 ? '#ffd866' : '#ff6b9d'}
-                            strokeWidth="8" fill="none"
-                            strokeLinecap="round"
-                            strokeDasharray={ringC}
-                            strokeDashoffset={ringOffset}
-                            transform="rotate(-90 60 60)"
-                            className="ring-progress"
-                        />
-                        <text x="60" y="55" textAnchor="middle" className="ring-pct">{completionPct}%</text>
-                        <text x="60" y="72" textAnchor="middle" className="ring-label">done</text>
-                    </svg>
-                </div>
-
-                {/* Streak */}
-                <div className="streak-bar">
-                    <div className="streak-item">
-                        <span className="streak-number">{streak.current_streak}</span>
-                        <span className="streak-label">🔥 Current</span>
-                    </div>
-                    <div className="streak-item">
-                        <span className="streak-number">{streak.longest_streak}</span>
-                        <span className="streak-label">🏆 Best</span>
-                    </div>
-                    <div className="streak-item">
-                        <span className="streak-number">{streak.total_days_tracked}</span>
-                        <span className="streak-label">📅 Days</span>
-                    </div>
-                </div>
+            <div className="lifestyle-header text-center">
+                <h1 className="page-title">{greeting}, {user?.name?.split(' ')[0] || 'Warrior'}</h1>
+                <p className="page-subtitle">Your personalized daily health briefing</p>
             </div>
-            <div className="streak-msg">{streakMessage}</div>
 
-            {/* AI Coach Card */}
-            <div className="ai-coach-card">
-                <div className="ai-coach-header">
-                    <span className="ai-badge">🤖 AI</span>
-                    <h3>Your Personal Health Coach</h3>
+            {/* Daily Briefing Hero Section */}
+            {isToday ? (
+                <>
+                    <div className="daily-briefing-glass">
+                        <div className="briefing-content">
+                            <div className="ai-coach-header">
+                                <span className="ai-badge">🤖 Core AI Assistant</span>
+                                <div className="persona-selector">
+                                    {personas.map(p => (
+                                        <button
+                                            key={p.id}
+                                            className={`persona-btn ${persona === p.id ? 'active' : ''}`}
+                                            onClick={() => setPersonaChoice(p.id)}
+                                            disabled={personaLoading}
+                                            title={p.name}
+                                        >
+                                            {p.emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            {aiTip ? (
+                                <div className="ai-tip-content">
+                                    <p>"{aiTip}"</p>
+                                    <button className="ai-btn-small" onClick={fetchCoachTip} disabled={aiTipLoading}>
+                                        {aiTipLoading ? '⏳ Recalculating...' : '🔄 Update Briefing'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="ai-tip-placeholder">
+                                    <p>I can analyze your vitals and today's targets to create your action plan.</p>
+                                    <button className="ai-btn" onClick={fetchCoachTip} disabled={aiTipLoading}>
+                                        {aiTipLoading ? '⏳ Analyzing Bio-data...' : '✨ Generate Daily Briefing'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="briefing-stats">
+                            <div className="completion-ring-wrap">
+                                <svg viewBox="0 0 120 120" className="completion-ring">
+                                    <circle cx="60" cy="60" r={ringR} stroke="rgba(255,255,255,0.06)" strokeWidth="8" fill="none" />
+                                    <circle
+                                        cx="60" cy="60" r={ringR}
+                                        stroke={completionPct >= 80 ? 'var(--neon-cyan)' : completionPct >= 50 ? 'var(--yellow)' : 'var(--neon-pink)'}
+                                        strokeWidth="8" fill="none"
+                                        strokeLinecap="round"
+                                        strokeDasharray={ringC}
+                                        strokeDashoffset={ringOffset}
+                                        transform="rotate(-90 60 60)"
+                                        className="ring-progress"
+                                    />
+                                    <text x="60" y="55" textAnchor="middle" className="ring-pct">{completionPct}%</text>
+                                    <text x="60" y="72" textAnchor="middle" className="ring-label">done</text>
+                                </svg>
+                            </div>
+
+                            <div className="streak-briefing">
+                                <HabitSpark streak={streak.current_streak} completionPct={completionPct} />
+                                <div className="streak-msg">{streakMessage}</div>
+                                <div className="streak-bar-mini">
+                                    <div className="streak-item-mini" title="Current Day Streak">
+                                        <span className="streak-number-mini">{streak.current_streak}</span>
+                                        <span className="streak-label-mini">🔥</span>
+                                    </div>
+                                    <div className="streak-item-mini" title="Best Streak">
+                                        <span className="streak-number-mini">{streak.longest_streak}</span>
+                                        <span className="streak-label-mini">🏆</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Daily Quest Gamification */}
+                    {quest && (
+                        <div className={`quest-card ${quest.completed ? 'quest-done' : ''}`}>
+                            <div className="quest-header">
+                                <span className="quest-badge">✨ Daily Quest</span>
+                                <span className="quest-xp">+{quest.xp_reward || 50} XP</span>
+                            </div>
+                            <div className="quest-body">
+                                <span className="quest-icon-lg">{quest.icon || '⭐'}</span>
+                                <div className="quest-info">
+                                    <h3>{quest.title || 'Daily Quest'}</h3>
+                                    <p>{quest.description || 'Complete this task for a little health boost.'}</p>
+                                </div>
+                                <button
+                                    className={`quest-action-btn ${quest.completed ? 'completed' : ''}`}
+                                    onClick={completeQuest}
+                                    disabled={quest.completed}
+                                >
+                                    {quest.completed ? '✓ Claimed' : 'Complete Quest'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </>
+            ) : (
+                <div className="historical-warning glass-card">
+                    <span className="warning-icon">🕰️</span>
+                    <div className="warning-text">
+                        <h3>Viewing Historical Data</h3>
+                        <p>You are looking at {new Date(selectedDay + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}. Historical logs cannot be edited.</p>
+                    </div>
+                    <button className="return-today-btn" onClick={() => {
+                        setSelectedDay(null)
+                        const today = new Date().toISOString().slice(0, 10)
+                        const log = calendarLogs.find(l => l.date === today)
+                        setCompleted(log?.completed || [])
+                        setValues(log?.values || {})
+                        setMood(log?.mood || null)
+                        setEnergy(log?.energy || 0)
+                        setNotes(log?.notes || '')
+                    }}>Return to Today</button>
                 </div>
-                {aiTip ? (
-                    <div className="ai-tip-content">
-                        <p>{aiTip}</p>
-                        <button className="ai-btn-small" onClick={fetchCoachTip} disabled={aiTipLoading}>
-                            {aiTipLoading ? '⏳ Thinking...' : '🔄 New Tip'}
-                        </button>
-                    </div>
-                ) : (
-                    <div className="ai-tip-placeholder">
-                        <p>Get a personalized health tip based on your goals, streaks, and risk profile</p>
-                        <button className="ai-btn" onClick={fetchCoachTip} disabled={aiTipLoading}>
-                            {aiTipLoading ? '⏳ Analyzing your data...' : '✨ Get Today\'s Tip'}
-                        </button>
-                    </div>
-                )}
-            </div>
+            )
+            }
 
             {/* Today's Goals — Rich Cards */}
             <h2 className="section-title">
@@ -344,7 +618,7 @@ export default function Lifestyle() {
             </h2>
 
             <div className="goals-grid-v2">
-                {goals.map(g => {
+                {sortedGoals.map(g => {
                     const done = completed.includes(g.id)
                     const actual = values[g.id] || 0
                     const pct = isBinary(g) ? (done ? 100 : 0) : (g.target > 0 ? Math.min(Math.round((actual / g.target) * 100), 100) : 0)
@@ -450,6 +724,21 @@ export default function Lifestyle() {
                 />
             </div>
 
+            {/* Voice-First Quick Log */}
+            <div className="voice-log-section">
+                <button
+                    className={`voice-mic-btn ${listening ? 'listening' : ''} ${voiceLoading ? 'processing' : ''}`}
+                    onClick={startVoiceLog}
+                    disabled={listening || voiceLoading}
+                >
+                    {listening ? '🔴' : voiceLoading ? '⏳' : '🎙️'}
+                </button>
+                <span className="voice-label">
+                    {listening ? 'Listening... speak now!' : voiceLoading ? 'AI is parsing your update...' : 'Tap mic to log by voice'}
+                </span>
+                {transcript && <p className="voice-transcript">"{transcript}"</p>}
+            </div>
+
             {/* Save Button */}
             <div className="save-day-wrap">
                 <button
@@ -470,32 +759,19 @@ export default function Lifestyle() {
             </div>
 
             {/* Calendar Heatmap */}
-            <h2 className="section-title">📆 Activity Calendar</h2>
-            <div className="calendar-nav">
-                <button onClick={() => changeMonth(-1)}>← Prev</button>
-                <span className="month-label">{monthLabel}</span>
-                <button onClick={() => changeMonth(1)}>Next →</button>
-            </div>
-            <div className="calendar-header">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                    <div key={d} className="cal-day-name">{d}</div>
-                ))}
-            </div>
-            <div className="calendar-grid">
-                {buildCalendar().map((cell, i) =>
-                    cell ? (
+            <h2 className="section-title">📆 Consistency Heatmap</h2>
+
+            <div className="github-heatmap-container">
+                <div className="github-heatmap">
+                    {buildHeatmap().map((cell, i) => (
                         <div
                             key={i}
-                            className={`cal-cell ${getHeatColor(cell.log?.completion_pct)} ${selectedDay === cell.date ? 'selected' : ''}`}
+                            className={`heatmap-cell ${getHeatColor(cell.log?.completion_pct)} ${selectedDay === cell.date ? 'selected' : ''}`}
                             onClick={() => setSelectedDay(selectedDay === cell.date ? null : cell.date)}
-                            title={cell.log ? `${cell.log.completion_pct}% completed` : 'No data'}
-                        >
-                            {cell.day}
-                        </div>
-                    ) : (
-                        <div key={i} className="cal-cell empty" />
-                    )
-                )}
+                            title={`${new Date(cell.date + 'T00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${cell.log ? cell.log.completion_pct + '% completed' : 'No data'}`}
+                        />
+                    ))}
+                </div>
             </div>
             <div className="heat-legend">
                 <span>Less</span>
@@ -503,33 +779,35 @@ export default function Lifestyle() {
                 <span>More</span>
             </div>
 
-            {selectedDay && (() => {
-                const log = calendarLogs.find(l => l.date === selectedDay)
-                return (
-                    <div className="day-detail">
-                        <h3>📋 {new Date(selectedDay + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
-                        {log ? (
-                            <>
-                                <p className="detail-pct">{log.completion_pct}% completed ({log.completed?.length || 0}/{log.total_goals} goals)</p>
-                                {log.mood && <p className="detail-mood">Mood: {MOODS.find(m => m.value === log.mood)?.emoji || ''} {log.mood} {log.energy ? `· Energy: ${'⚡'.repeat(log.energy)}` : ''}</p>}
-                                {log.notes && <p className="detail-notes">"{log.notes}"</p>}
-                                <div className="detail-tags">
-                                    {goals.map(g => {
-                                        const val = log.values?.[g.id]
-                                        return (
-                                            <span key={g.id} className={`tag ${log.completed?.includes(g.id) ? 'tag-done' : 'tag-miss'}`}>
-                                                {g.icon} {g.label}{val != null ? ` (${val} ${g.unit})` : ''}
-                                            </span>
-                                        )
-                                    })}
-                                </div>
-                            </>
-                        ) : (
-                            <p className="detail-pct">No activity logged</p>
-                        )}
-                    </div>
-                )
-            })()}
+            {
+                selectedDay && (() => {
+                    const log = calendarLogs.find(l => l.date === selectedDay)
+                    return (
+                        <div className="day-detail">
+                            <h3>📋 {new Date(selectedDay + 'T00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</h3>
+                            {log ? (
+                                <>
+                                    <p className="detail-pct">{log.completion_pct}% completed ({log.completed?.length || 0}/{log.total_goals} goals)</p>
+                                    {log.mood && <p className="detail-mood">Mood: {MOODS.find(m => m.value === log.mood)?.emoji || ''} {log.mood} {log.energy ? `· Energy: ${'⚡'.repeat(log.energy)}` : ''}</p>}
+                                    {log.notes && <p className="detail-notes">"{log.notes}"</p>}
+                                    <div className="detail-tags">
+                                        {goals.map(g => {
+                                            const val = log.values?.[g.id]
+                                            return (
+                                                <span key={g.id} className={`tag ${log.completed?.includes(g.id) ? 'tag-done' : 'tag-miss'}`}>
+                                                    {g.icon} {g.label}{val != null ? ` (${val} ${g.unit})` : ''}
+                                                </span>
+                                            )
+                                        })}
+                                    </div>
+                                </>
+                            ) : (
+                                <p className="detail-pct">No activity logged</p>
+                            )}
+                        </div>
+                    )
+                })()
+            }
 
             {/* Weekly AI Insights */}
             <div className="ai-insights-section">
@@ -603,6 +881,6 @@ export default function Lifestyle() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     )
 }

@@ -16,9 +16,10 @@ def get_db():
     from api import get_mongo_db
     return get_mongo_db()
 
+IST = timezone(timedelta(hours=5, minutes=30))
 
 def today_str() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return datetime.now(IST).strftime("%Y-%m-%d")
 
 
 @tracker_bp.route("/api/tracker", methods=["GET"])
@@ -28,9 +29,24 @@ def get_logs():
     if err:
         return err
 
-    month = request.args.get("month", today_str()[:7])
-
     db = get_db()
+
+    days = request.args.get("days")
+    if days:
+        try:
+            days_int = int(days)
+            cutoff = (datetime.now(IST) - timedelta(days=days_int)).strftime("%Y-%m-%d")
+            logs = list(
+                db.daily_logs.find(
+                    {"user_id": ObjectId(user_id), "date": {"$gte": cutoff}},
+                    {"_id": 0, "user_id": 0},
+                ).sort("date", 1)
+            )
+            return jsonify({"days": days_int, "logs": logs})
+        except ValueError:
+            pass
+
+    month = request.args.get("month", today_str()[:7])
     logs = list(
         db.daily_logs.find(
             {"user_id": ObjectId(user_id), "date": {"$regex": f"^{month}"}},
@@ -93,7 +109,7 @@ def update_today():
         "goal_progress": goal_progress,
         "total_goals": total_goals,
         "completion_pct": completion_pct,
-        "updated_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(IST),
     }
     if notes is not None:
         update_set["notes"] = notes
@@ -109,7 +125,7 @@ def update_today():
             "$setOnInsert": {
                 "user_id": ObjectId(user_id),
                 "date": date,
-                "created_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(IST),
             },
         },
         upsert=True,
@@ -149,7 +165,7 @@ def get_streak():
     good_days = {log["date"] for log in logs if log.get("completion_pct", 0) >= 80}
 
     current_streak = 0
-    check_date = datetime.now(timezone.utc).date()
+    check_date = datetime.now(IST).date()
     if check_date.strftime("%Y-%m-%d") not in good_days:
         check_date -= timedelta(days=1)
     while check_date.strftime("%Y-%m-%d") in good_days:
@@ -171,8 +187,24 @@ def get_streak():
             else:
                 run = 1
 
+    badges = []
+    if len(logs) >= 1:
+        badges.append({"id": "first_step", "name": "First Step", "icon": "🌱", "desc": "Tracked your first day"})
+    if len(logs) >= 10:
+        badges.append({"id": "consistent_10", "name": "Consistent 10", "icon": "📅", "desc": "Tracked 10 total days"})
+        
+    if longest_streak >= 3:
+        badges.append({"id": "warrior_3", "name": "3-Day Warrior", "icon": "💪", "desc": "Achieved a 3-day streak"})
+    if longest_streak >= 7:
+        badges.append({"id": "warrior_7", "name": "1-Week Warrior", "icon": "⭐", "desc": "Achieved a 7-day streak"})
+    if longest_streak >= 14:
+        badges.append({"id": "champion_14", "name": "Fortitude", "icon": "🔥", "desc": "Achieved a 14-day streak"})
+    if longest_streak >= 30:
+        badges.append({"id": "legend_30", "name": "Legend", "icon": "🏆", "desc": "Achieved a 30-day streak"})
+
     return jsonify({
         "current_streak": current_streak,
         "longest_streak": longest_streak,
         "total_days_tracked": len(logs),
+        "badges": badges
     })

@@ -1,19 +1,32 @@
 :root {
-  --pink: #ff6b9d;
-  --pink-light: #ff8fab;
-  --pink-lighter: #ffc3d4;
+  /* Neon & Primary Colors */
+  --neon-pink: #FF2A6D;
+  --neon-cyan: #05D9E8;
+  --neon-purple: #D1F7FF;
+  --primary-gradient: linear-gradient(135deg, #FF2A6D 0%, #d9205b 100%);
+  --secondary-gradient: linear-gradient(135deg, #05D9E8 0%, #018b95 100%);
+
+  /* Modern App Colors (Kept for compatibility mappings) */
+  --pink: #FF2A6D;
+  --pink-light: #ff578a;
+  --pink-lighter: #ff91b3;
   --green: #00ffaa;
-  --red: #ff5757;
-  --blue: #4a90e2;
-  --blue-light: #6bb3ff;
-  --yellow: #ffcc00;
-  --bg-dark: #0f0f1a;
-  --bg-mid: #1a1a2e;
-  --bg-card: rgba(255, 107, 156, 0.15);
+  --red: #ff3366;
+  --blue: #05D9E8;
+  --yellow: #ffd866;
+
+  /* Deep Backgrounds */
+  --bg-dark: #0a0a16;
+  --bg-mid: #121026;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.08);
+
+  /* Typography */
   --text: #ffffff;
-  --text-muted: #cccccc;
-  --text-dim: #aaaaaa;
-  --text-footer: #666666;
+  --text-muted: #a0a0b8;
+  --text-dim: #60607a;
+  --text-footer: #4a4a68;
 }
 
 * {
@@ -22,15 +35,50 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  background: linear-gradient(180deg, var(--bg-dark) 0%, var(--bg-mid) 100%);
-  color: var(--text);
-  min-height: 100vh;
+html {
+  scroll-behavior: smooth;
 }
 
-h1, h2, h3 {
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-dark);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(255, 42, 109, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(5, 217, 232, 0.08), transparent 25%);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
   font-family: 'Outfit', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Page Transition Wrapper */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(15px);
+}
+
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms cubic-bezier(0.16, 1, 0.3, 1), transform 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.page-transition-exit {
+  opacity: 1;
+}
+
+.page-transition-exit-active {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
 }
 
 a {
@@ -41,9 +89,11 @@ a {
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-dark);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 107, 156, 0.4);
   border-radius: 4px;
