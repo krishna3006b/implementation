@@ -1827,6 +1827,49 @@ textarea.read-only {
         border-radius: 14px;
     }
 
+    /* Quest Card Refined for Mobile */
+    .quest-card {
+        padding: 1.2rem;
+        border-radius: 16px;
+        position: relative;
+    }
+
+    .quest-body {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 1rem;
+    }
+
+    .quest-icon-lg {
+        font-size: 2.5rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .quest-info h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .quest-info p {
+        font-size: 0.85rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .quest-action-btn {
+        width: 100%;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .quest-header {
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+
     /* Habit Spark */
     .habit-spark-container {
         transform: scale(0.8);
@@ -1973,5 +2016,153 @@ textarea.read-only {
 
     .quick-chat-wrap button {
         font-size: 0.75rem;
+    }
+}
+
+/* =========================================
+   ONBOARDING OVERLAY
+   ========================================= */
+
+.onboarding-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.4s ease;
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.onboarding-card {
+    background: linear-gradient(145deg, rgba(30, 30, 40, 0.95), rgba(20, 15, 35, 0.95));
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 3rem 2.5rem 2rem;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.06);
+    animation: slideUp 0.5s ease;
+}
+
+.onboarding-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1.5rem;
+    width: 90px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.2), rgba(255, 107, 157, 0.2));
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    animation: sparkPulse 2s ease-in-out infinite;
+}
+
+.onboarding-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.8rem;
+    background: linear-gradient(135deg, #ff8fab, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.onboarding-desc {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.onboarding-dots {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.onboarding-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.onboarding-dot.active {
+    background: #ff8fab;
+    box-shadow: 0 0 8px rgba(255, 143, 171, 0.5);
+    transform: scale(1.2);
+}
+
+.onboarding-actions {
+    display: flex;
+    gap: 0.8rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.onboarding-btn {
+    padding: 0.7rem 1.8rem;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+.onboarding-btn.primary {
+    background: linear-gradient(135deg, #ff6b9d, #a78bfa);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(255, 107, 157, 0.3);
+}
+
+.onboarding-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 157, 0.4);
+}
+
+.onboarding-btn.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.onboarding-btn.secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.onboarding-skip {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.onboarding-skip:hover {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }

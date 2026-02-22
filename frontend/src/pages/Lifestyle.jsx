@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../context/AuthContext'
 import './Lifestyle.css'
 
@@ -78,6 +79,22 @@ export default function Lifestyle() {
     // AI Persona states
     const [persona, setPersona] = useState('supportive')
     const [personas, setPersonas] = useState([])
+
+    // Onboarding
+    const [showOnboarding, setShowOnboarding] = useState(false)
+    const [onboardingStep, setOnboardingStep] = useState(0)
+    const onboardingCards = [
+        { icon: '🎯', title: 'Track Your Goals', desc: 'Set daily health goals like walking, water intake, and sleep. Check them off as you complete them throughout the day.' },
+        { icon: '🤖', title: 'AI Health Coach', desc: 'Get personalized daily health tips from your AI coach. Chat anytime for advice tailored to your data and risk profile.' },
+        { icon: '✨', title: 'Daily Quests & Streaks', desc: 'Complete fun daily quests for XP rewards! Build streaks to earn Streak Freezes 🧊 that protect your progress.' },
+        { icon: '📆', title: 'Heatmap & Insights', desc: 'Your 60-day heatmap shows consistency at a glance. The brighter the cell, the better your day was. Tap any cell for details.' },
+    ]
+
+    useEffect(() => {
+        const seen = localStorage.getItem('heartguard_onboarding_seen')
+        if (!seen && token) setShowOnboarding(true)
+    }, [token])
+
     const [personaLoading, setPersonaLoading] = useState(false)
 
     const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }), [token])
@@ -504,6 +521,34 @@ export default function Lifestyle() {
 
     return (
         <div className="lifestyle-page">
+            {/* Onboarding Overlay - Rendered via Portal to escape parent transforms */}
+            {showOnboarding && createPortal(
+                <div className="onboarding-overlay">
+                    <div className="onboarding-card">
+                        <div className="onboarding-icon">{onboardingCards[onboardingStep].icon}</div>
+                        <h2 className="onboarding-title">{onboardingCards[onboardingStep].title}</h2>
+                        <p className="onboarding-desc">{onboardingCards[onboardingStep].desc}</p>
+                        <div className="onboarding-dots">
+                            {onboardingCards.map((_, i) => (
+                                <span key={i} className={`onboarding-dot ${i === onboardingStep ? 'active' : ''}`} onClick={() => setOnboardingStep(i)} />
+                            ))}
+                        </div>
+                        <div className="onboarding-actions">
+                            {onboardingStep > 0 ? (
+                                <button className="onboarding-btn secondary" onClick={() => setOnboardingStep(s => s - 1)}>← Back</button>
+                            ) : <div style={{ width: 0 }} />}
+                            {onboardingStep < onboardingCards.length - 1 ? (
+                                <button className="onboarding-btn primary" onClick={() => setOnboardingStep(s => s + 1)}>Next →</button>
+                            ) : (
+                                <button className="onboarding-btn primary" onClick={() => { setShowOnboarding(false); localStorage.setItem('heartguard_onboarding_seen', '1') }}>🚀 Get Started</button>
+                            )}
+                        </div>
+                        <button className="onboarding-skip" onClick={() => { setShowOnboarding(false); localStorage.setItem('heartguard_onboarding_seen', '1') }}>Skip</button>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             <div className="lifestyle-header text-center">
                 <h1 className="page-title">{greeting}, {user?.name?.split(' ')[0] || 'Warrior'}</h1>
                 <p className="page-subtitle">Your personalized daily health briefing</p>
