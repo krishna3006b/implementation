@@ -1,0 +1,61 @@
+.hero {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+}
+
+.hero-heart {
+  font-size: 8rem;
+  display: inline-block;
+  filter: drop-shadow(0 0 40px rgba(255, 107, 156, 0.6));
+  animation: heartbeat 1.2s ease-in-out infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  15%      { transform: scale(1.2); }
+  30%      { transform: scale(1); }
+  45%      { transform: scale(1.15); }
+  60%      { transform: scale(1); }
+}
+
+.hero-title {
+  font-size: 4.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ff6b9d 0%, #ff8fab 30%, #ffc3d4 60%, #ff6b9d 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 3s ease infinite;
+  margin-bottom: 0.5rem;
+}
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50%      { background-position: 100% 50%; }
+}
+
+.hero-subtitle {
+  font-size: 1.3rem;
+  color: #fff;
+  font-weight: 400;
+}
+
+.cta-section {
+  text-align: center;
+  padding: 2rem 0 1rem;
+}
+.cta-section h2 {
+  font-size: 2rem;
+  margin-bottom: 0.6rem;
+}
+.cta-section p {
+  color: #aaa;
+  margin-bottom: 1.5rem;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 600px) {
+  .hero-title { font-size: 2.8rem; }
+  .hero-heart { font-size: 5rem; }
+}

@@ -11,7 +11,25 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-DEFAULT_FEATURES = ["thall", "caa", "cp", "oldpeak", "exng", "chol", "thalachh"]
+# All 13 feature columns from heart.csv (excluding the target 'output')
+ALL_FEATURES = [
+    "age",
+    "sex",
+    "cp",
+    "trtbps",
+    "chol",
+    "fbs",
+    "restecg",
+    "thalachh",
+    "exng",
+    "oldpeak",
+    "slp",
+    "caa",
+    "thall",
+]
+
+# Top 7 features identified via mutual information in the notebook
+TOP7_FEATURES = ["thall", "caa", "cp", "oldpeak", "exng", "chol", "thalachh"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -27,13 +45,13 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--output",
-        default="logistic_model.joblib",
-        help="Output model artifact path (default: logistic_model.joblib)",
+        default=str(Path(__file__).resolve().parent / "logistic_model.joblib"),
+        help="Output model artifact path (default: <project_dir>/logistic_model.joblib)",
     )
     parser.add_argument(
-        "--all-features",
+        "--top7-only",
         action="store_true",
-        help="Use all numeric feature columns except target",
+        help="Use only the top 7 MI-selected features instead of all 13",
     )
     return parser.parse_args()
 
@@ -44,18 +62,31 @@ def read_dataset(path: Path) -> pd.DataFrame:
     return pd.read_csv(path)
 
 
-def select_features(df: pd.DataFrame, target_col: str, use_all_features: bool) -> list[str]:
-    if use_all_features:
-        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
-        return [c for c in numeric_cols if c != target_col]
+def select_features(df: pd.DataFrame, target_col: str, top7_only: bool) -> list[str]:
+    if top7_only:
+        chosen = TOP7_FEATURES
+    else:
+        chosen = ALL_FEATURES
 
-    missing = [col for col in DEFAULT_FEATURES if col not in df.columns]
+    missing = [col for col in chosen if col not in df.columns]
     if missing:
         raise ValueError(
-            f"Dataset is missing expected columns for app compatibility: {missing}. "
-            f"Use --all-features only if you also update app inputs."
+            f"Dataset is missing expected columns: {missing}. "
+            f"Available columns: {df.columns.tolist()}"
         )
-    return DEFAULT_FEATURES
+    return chosen
+
+
+def treat_outliers(df: pd.DataFrame) -> pd.DataFrame:
+    """Cap upper outliers at the 90th percentile (same as the notebook)."""
+    import numpy as np
+
+    df = df.copy()
+    for col in ["trtbps", "chol", "oldpeak"]:
+        if col in df.columns:
+            upper = df[col].quantile(0.90)
+            df[col] = np.where(df[col] > upper, upper, df[col])
+    return df
 
 
 def main() -> None:
@@ -66,7 +97,10 @@ def main() -> None:
     if args.target not in df.columns:
         raise ValueError(f"Target column '{args.target}' not found in dataset")
 
-    feature_columns = select_features(df, args.target, args.all_features)
+    # Apply the same outlier treatment used in the notebook
+    df = treat_outliers(df)
+
+    feature_columns = select_features(df, args.target, args.top7_only)
 
     target_series = df[args.target]
     risk_label = args.risk_label
@@ -114,7 +148,7 @@ def main() -> None:
     joblib.dump(artifact, output_path)
 
     print(f"Saved model to: {output_path}")
-    print(f"Features used: {feature_columns}")
+    print(f"Features used ({len(feature_columns)}): {feature_columns}")
     print("Metrics:")
     for metric_name, value in artifact["metrics"].items():
         print(f"  {metric_name}: {value:.4f}")
