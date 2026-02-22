@@ -1632,3 +1632,311 @@ textarea.read-only {
     background: rgba(255, 107, 157, 0.2);
     box-shadow: 0 0 10px rgba(255, 107, 157, 0.3);
 }
+
+/* =========================================
+   MOBILE RESPONSIVE — 768px
+   ========================================= */
+
+@media (max-width: 768px) {
+    .lifestyle-page {
+        padding: 1rem;
+    }
+
+    .lifestyle-header {
+        margin-bottom: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.3rem;
+    }
+
+    .page-subtitle {
+        font-size: 0.85rem;
+    }
+
+    .daily-briefing-glass {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 1.2rem;
+        gap: 1rem;
+        border-radius: 16px;
+        margin-bottom: 1.5rem;
+    }
+
+    .briefing-content {
+        width: 100%;
+    }
+
+    .ai-coach-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.6rem;
+    }
+
+    .persona-selector {
+        margin-left: 0;
+    }
+
+    .briefing-stats {
+        width: 100%;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .completion-ring-wrap {
+        width: 100px;
+        height: 100px;
+    }
+
+    .ring-pct {
+        font-size: 1rem;
+    }
+
+    .top-stats {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .section-title {
+        font-size: 1rem !important;
+        margin-bottom: 0.8rem;
+    }
+
+    /* Heatmap */
+    .github-heatmap-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 1rem;
+    }
+
+    .github-heatmap {
+        gap: 4px;
+    }
+
+    .heatmap-cell {
+        width: 13px;
+        height: 13px;
+        border-radius: 3px;
+    }
+
+    .heat-legend {
+        font-size: 0.7rem;
+    }
+
+    .heat-box {
+        width: 13px;
+        height: 13px;
+    }
+
+    /* Goals */
+    .goals-grid-v2 {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .goal-card-v2 {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    /* Mood / Energy */
+    .mood-energy-row {
+        flex-direction: column;
+        gap: 0.8rem;
+    }
+
+    .mood-picker,
+    .energy-row {
+        padding: 1rem;
+    }
+
+    /* Voice Mic */
+    .voice-log-section {
+        padding: 1rem;
+        gap: 0.8rem;
+        border-radius: 14px;
+    }
+
+    .voice-mic-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 1.2rem;
+    }
+
+    .voice-label {
+        font-size: 0.8rem;
+    }
+
+    .voice-transcript {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.8rem;
+    }
+
+    /* Daily Notes */
+    .daily-notes textarea {
+        font-size: 0.85rem;
+    }
+
+    /* Save Button */
+    .save-day-btn {
+        width: 100%;
+        padding: 0.9rem;
+        font-size: 0.9rem;
+        border-radius: 14px;
+    }
+
+    /* Quest Card */
+    .quest-card {
+        padding: 1.2rem;
+        border-radius: 14px;
+    }
+
+    /* Habit Spark */
+    .habit-spark-container {
+        transform: scale(0.8);
+    }
+
+    /* AI Coach Card */
+    .ai-coach-card {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    /* Chat */
+    .chat-container {
+        width: calc(100vw - 1.5rem);
+        right: -0.5rem;
+        bottom: -0.5rem;
+        max-height: 60vh;
+        border-radius: 16px;
+    }
+
+    .chat-messages {
+        max-height: 35vh;
+    }
+
+    /* Badges */
+    .badges-grid {
+        grid-template-columns: 1fr;
+        gap: 0.8rem;
+    }
+
+    .badge-card {
+        padding: 1rem;
+    }
+
+    /* AI Insights */
+    .ai-insights-section {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    /* Day Detail */
+    .day-detail {
+        padding: 1rem;
+        border-radius: 14px;
+    }
+
+    /* Historical View banner */
+    .historical-banner {
+        padding: 1rem;
+        font-size: 0.85rem;
+        border-radius: 14px;
+    }
+}
+
+/* =========================================
+   MOBILE RESPONSIVE — 480px (small phones)
+   ========================================= */
+
+@media (max-width: 480px) {
+    .lifestyle-page {
+        padding: 0.6rem;
+    }
+
+    .page-title {
+        font-size: 1.1rem;
+    }
+
+    .daily-briefing-glass {
+        padding: 1rem;
+        gap: 0.8rem;
+        border-radius: 14px;
+    }
+
+    .ai-badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.6rem;
+    }
+
+    .persona-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.9rem;
+    }
+
+    .completion-ring-wrap {
+        width: 80px;
+        height: 80px;
+    }
+
+    .streak-bar {
+        gap: 0.4rem;
+    }
+
+    .streak-item {
+        padding: 0.4rem 0.6rem;
+    }
+
+    .streak-number {
+        font-size: 1.2rem;
+    }
+
+    .streak-label {
+        font-size: 0.6rem;
+    }
+
+    /* Heatmap smaller */
+    .heatmap-cell {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+    }
+
+    .github-heatmap {
+        gap: 3px;
+    }
+
+    /* Voice */
+    .voice-mic-btn {
+        width: 42px;
+        height: 42px;
+        font-size: 1rem;
+    }
+
+    /* Chat full screen on tiny devices */
+    .chat-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        max-height: 100vh;
+        border-radius: 0;
+        z-index: 1000;
+    }
+
+    .chat-messages {
+        max-height: 60vh;
+    }
+
+    .quick-chat-wrap {
+        flex-direction: column;
+    }
+
+    .quick-chat-wrap button {
+        font-size: 0.75rem;
+    }
+}
