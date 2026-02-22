@@ -30,7 +30,7 @@ const thallOptions = [
 const testPresets = [
   {
     label: '💚 Healthy Young Male (Low Risk)',
-    data: { age: 29, sex: 1, cp: 1, trtbps: 130, chol: 204, fbs: 0, restecg: 0, thalachh: 202, exng: 0, oldpeak: 0, slp: 2, caa: 0, thall: 2 },
+    data: { age: 35, sex: 1, cp: 0, trtbps: 126, chol: 282, fbs: 0, restecg: 0, thalachh: 156, exng: 1, oldpeak: 0, slp: 2, caa: 0, thall: 3 },
   },
   {
     label: '💚 Healthy Female (Low Risk)',

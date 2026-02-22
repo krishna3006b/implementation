@@ -1,8 +1,6 @@
 flask
 gunicorn
-streamlit
 numpy
-streamlit-option-menu
 scikit-learn
 pandas
 joblib
