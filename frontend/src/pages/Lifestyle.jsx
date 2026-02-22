@@ -4,10 +4,22 @@ import './Lifestyle.css'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
 
+const MOODS = [
+    { value: 'great', emoji: '😄', label: 'Great' },
+    { value: 'good', emoji: '🙂', label: 'Good' },
+    { value: 'okay', emoji: '😐', label: 'Okay' },
+    { value: 'bad', emoji: '😞', label: 'Bad' },
+    { value: 'terrible', emoji: '😣', label: 'Terrible' },
+]
+
 export default function Lifestyle() {
     const { user, token } = useAuth()
     const [goals, setGoals] = useState([])
     const [completed, setCompleted] = useState([])
+    const [values, setValues] = useState({})
+    const [mood, setMood] = useState(null)
+    const [energy, setEnergy] = useState(0)
+    const [notes, setNotes] = useState('')
     const [streak, setStreak] = useState({ current_streak: 0, longest_streak: 0, total_days_tracked: 0 })
     const [calendarLogs, setCalendarLogs] = useState([])
     const [currentMonth, setCurrentMonth] = useState(() => {
@@ -16,6 +28,7 @@ export default function Lifestyle() {
     })
     const [loading, setLoading] = useState(true)
     const [selectedDay, setSelectedDay] = useState(null)
+    const [saving, setSaving] = useState(false)
 
     // AI states
     const [aiTip, setAiTip] = useState('')
@@ -27,6 +40,7 @@ export default function Lifestyle() {
     const [chatInput, setChatInput] = useState('')
     const [chatLoading, setChatLoading] = useState(false)
     const chatEndRef = useRef(null)
+    const saveTimer = useRef(null)
 
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
@@ -48,6 +62,10 @@ export default function Lifestyle() {
             const today = new Date().toISOString().slice(0, 10)
             const todayLog = (logsData.logs || []).find(l => l.date === today)
             setCompleted(todayLog?.completed || [])
+            setValues(todayLog?.values || {})
+            setMood(todayLog?.mood || null)
+            setEnergy(todayLog?.energy || 0)
+            setNotes(todayLog?.notes || '')
         } catch (e) {
             console.error('Failed to fetch data:', e)
         } finally {
@@ -58,24 +76,97 @@ export default function Lifestyle() {
     useEffect(() => { fetchAll() }, [fetchAll])
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
 
-    const toggleGoal = async (goalId) => {
-        const updated = completed.includes(goalId)
+    // Debounced save
+    const saveTracking = useCallback(async (newCompleted, newValues, newMood, newEnergy, newNotes) => {
+        setSaving(true)
+        try {
+            await fetch(`${API_BASE}/api/tracker/today`, {
+                method: 'POST', headers,
+                body: JSON.stringify({
+                    completed: newCompleted,
+                    values: newValues,
+                    mood: newMood,
+                    energy: newEnergy,
+                    notes: newNotes,
+                }),
+            })
+            const [streakRes, logsRes] = await Promise.all([
+                fetch(`${API_BASE}/api/tracker/streak`, { headers }),
+                fetch(`${API_BASE}/api/tracker?month=${currentMonth}`, { headers }),
+            ])
+            setStreak(await streakRes.json())
+            const logsData = await logsRes.json()
+            setCalendarLogs(logsData.logs || [])
+        } catch (e) {
+            console.error('Save failed:', e)
+        } finally {
+            setSaving(false)
+        }
+    }, [token, currentMonth])
+
+    const debouncedSave = (c, v, m, e, n) => {
+        if (saveTimer.current) clearTimeout(saveTimer.current)
+        saveTimer.current = setTimeout(() => saveTracking(c, v, m, e, n), 600)
+    }
+
+    const toggleGoal = (goalId) => {
+        const wasCompleted = completed.includes(goalId)
+        const newCompleted = wasCompleted
             ? completed.filter(id => id !== goalId)
             : [...completed, goalId]
-        setCompleted(updated)
 
-        await fetch(`${API_BASE}/api/tracker/today`, {
-            method: 'POST', headers,
-            body: JSON.stringify({ completed: updated }),
-        })
+        const goal = goals.find(g => g.id === goalId)
+        const newValues = { ...values }
 
-        const [streakRes, logsRes] = await Promise.all([
-            fetch(`${API_BASE}/api/tracker/streak`, { headers }),
-            fetch(`${API_BASE}/api/tracker?month=${currentMonth}`, { headers }),
-        ])
-        setStreak(await streakRes.json())
-        const logsData = await logsRes.json()
-        setCalendarLogs(logsData.logs || [])
+        if (!wasCompleted && goal && goal.target > 0 && !newValues[goalId]) {
+            newValues[goalId] = goal.target
+        }
+        if (wasCompleted) {
+            delete newValues[goalId]
+        }
+
+        setCompleted(newCompleted)
+        setValues(newValues)
+        debouncedSave(newCompleted, newValues, mood, energy, notes)
+    }
+
+    const updateValue = (goalId, val) => {
+        const goal = goals.find(g => g.id === goalId)
+        if (!goal) return
+        const numVal = Math.max(0, parseFloat(val) || 0)
+        const newValues = { ...values, [goalId]: numVal }
+
+        let newCompleted = [...completed]
+        if (goal.target > 0 && numVal >= goal.target && !newCompleted.includes(goalId)) {
+            newCompleted.push(goalId)
+        } else if (goal.target > 0 && numVal < goal.target && newCompleted.includes(goalId)) {
+            newCompleted = newCompleted.filter(id => id !== goalId)
+        }
+
+        setValues(newValues)
+        setCompleted(newCompleted)
+        debouncedSave(newCompleted, newValues, mood, energy, notes)
+    }
+
+    const quickAdjust = (goalId, delta) => {
+        const current = values[goalId] || 0
+        const goal = goals.find(g => g.id === goalId)
+        const step = goal?.unit === 'steps' ? 500 : goal?.unit === 'minutes' ? 5 : 0.5
+        updateValue(goalId, current + delta * step)
+    }
+
+    const setMoodValue = (m) => {
+        setMood(m)
+        debouncedSave(completed, values, m, energy, notes)
+    }
+
+    const setEnergyValue = (e) => {
+        setEnergy(e)
+        debouncedSave(completed, values, mood, e, notes)
+    }
+
+    const saveNotes = () => {
+        debouncedSave(completed, values, mood, energy, notes)
     }
 
     // AI functions
@@ -163,6 +254,7 @@ export default function Lifestyle() {
     if (loading) return <div style={{ textAlign: 'center', padding: '4rem', color: '#aaa' }}>Loading your dashboard...</div>
 
     const completionPct = goals.length > 0 ? Math.round((completed.length / goals.length) * 100) : 0
+    const isBinary = (g) => g.target === 0
 
     const quickChatSuggestions = [
         '🥗 Heart-healthy meal plan',
@@ -171,24 +263,51 @@ export default function Lifestyle() {
         '🧘 Stress management techniques',
     ]
 
+    // SVG ring params
+    const ringR = 52
+    const ringC = 2 * Math.PI * ringR
+    const ringOffset = ringC - (completionPct / 100) * ringC
+
     return (
         <div className="lifestyle-page">
             <h1 className="page-title">🏃 Lifestyle Dashboard</h1>
             <p className="page-subtitle">Hey {user?.name?.split(' ')[0]}! Track your daily health goals</p>
 
-            {/* Streak Section */}
-            <div className="streak-bar">
-                <div className="streak-item">
-                    <span className="streak-number">{streak.current_streak}</span>
-                    <span className="streak-label">🔥 Current Streak</span>
+            {/* Top Stats Row */}
+            <div className="top-stats">
+                {/* Completion Ring */}
+                <div className="completion-ring-wrap">
+                    <svg viewBox="0 0 120 120" className="completion-ring">
+                        <circle cx="60" cy="60" r={ringR} stroke="rgba(255,255,255,0.06)" strokeWidth="8" fill="none" />
+                        <circle
+                            cx="60" cy="60" r={ringR}
+                            stroke={completionPct >= 80 ? '#00ffaa' : completionPct >= 50 ? '#ffd866' : '#ff6b9d'}
+                            strokeWidth="8" fill="none"
+                            strokeLinecap="round"
+                            strokeDasharray={ringC}
+                            strokeDashoffset={ringOffset}
+                            transform="rotate(-90 60 60)"
+                            className="ring-progress"
+                        />
+                        <text x="60" y="55" textAnchor="middle" className="ring-pct">{completionPct}%</text>
+                        <text x="60" y="72" textAnchor="middle" className="ring-label">done</text>
+                    </svg>
                 </div>
-                <div className="streak-item">
-                    <span className="streak-number">{streak.longest_streak}</span>
-                    <span className="streak-label">🏆 Best Streak</span>
-                </div>
-                <div className="streak-item">
-                    <span className="streak-number">{streak.total_days_tracked}</span>
-                    <span className="streak-label">📅 Days Tracked</span>
+
+                {/* Streak */}
+                <div className="streak-bar">
+                    <div className="streak-item">
+                        <span className="streak-number">{streak.current_streak}</span>
+                        <span className="streak-label">🔥 Current</span>
+                    </div>
+                    <div className="streak-item">
+                        <span className="streak-number">{streak.longest_streak}</span>
+                        <span className="streak-label">🏆 Best</span>
+                    </div>
+                    <div className="streak-item">
+                        <span className="streak-number">{streak.total_days_tracked}</span>
+                        <span className="streak-label">📅 Days</span>
+                    </div>
                 </div>
             </div>
             <div className="streak-msg">{streakMessage}</div>
@@ -216,20 +335,118 @@ export default function Lifestyle() {
                 )}
             </div>
 
-            {/* Today's Goals */}
-            <h2 className="section-title">Today's Goals <span className="pct-badge">{completionPct}%</span></h2>
-            <div className="goals-grid">
-                {goals.map(g => (
-                    <button
-                        key={g.id}
-                        className={`goal-card ${completed.includes(g.id) ? 'done' : ''}`}
-                        onClick={() => toggleGoal(g.id)}
-                    >
-                        <span className="goal-icon">{g.icon}</span>
-                        <span className="goal-label">{g.label}</span>
-                        <span className="goal-check">{completed.includes(g.id) ? '✅' : '⬜'}</span>
-                    </button>
-                ))}
+            {/* Today's Goals — Rich Cards */}
+            <h2 className="section-title">
+                Today's Goals
+                <span className="pct-badge">{completed.length}/{goals.length}</span>
+                {saving && <span className="save-indicator">💾 Saving...</span>}
+            </h2>
+
+            <div className="goals-grid-v2">
+                {goals.map(g => {
+                    const done = completed.includes(g.id)
+                    const actual = values[g.id] || 0
+                    const pct = isBinary(g) ? (done ? 100 : 0) : (g.target > 0 ? Math.min(Math.round((actual / g.target) * 100), 100) : 0)
+
+                    return (
+                        <div key={g.id} className={`goal-card-v2 ${done ? 'done' : ''}`}>
+                            <div className="goal-top">
+                                <span className="goal-icon-v2">{g.icon}</span>
+                                <div className="goal-info">
+                                    <span className="goal-name">{g.label}</span>
+                                    {!isBinary(g) && (
+                                        <span className="goal-target">{actual} / {g.target} {g.unit}</span>
+                                    )}
+                                </div>
+                                <button
+                                    className={`goal-check-v2 ${done ? 'checked' : ''}`}
+                                    onClick={() => toggleGoal(g.id)}
+                                    title={done ? 'Unmark' : 'Mark done'}
+                                >
+                                    {done ? '✓' : ''}
+                                </button>
+                            </div>
+
+                            {!isBinary(g) ? (
+                                <>
+                                    <div className="goal-progress-bar">
+                                        <div className="goal-progress-fill" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <div className="goal-controls">
+                                        <button className="adj-btn" onClick={() => quickAdjust(g.id, -1)}>−</button>
+                                        <input
+                                            type="number"
+                                            value={actual || ''}
+                                            onChange={e => updateValue(g.id, e.target.value)}
+                                            placeholder="0"
+                                            className="goal-input"
+                                        />
+                                        <span className="goal-unit">{g.unit}</span>
+                                        <button className="adj-btn" onClick={() => quickAdjust(g.id, 1)}>+</button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="binary-toggle">
+                                    <button
+                                        className={`binary-btn ${done ? 'yes' : ''}`}
+                                        onClick={() => { if (!done) toggleGoal(g.id) }}
+                                    >✓ Yes</button>
+                                    <button
+                                        className={`binary-btn ${!done ? 'no' : ''}`}
+                                        onClick={() => { if (done) toggleGoal(g.id) }}
+                                    >✗ No</button>
+                                </div>
+                            )}
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Mood & Energy */}
+            <div className="mood-energy-row">
+                <div className="mood-section">
+                    <h3>How are you feeling?</h3>
+                    <div className="mood-options">
+                        {MOODS.map(m => (
+                            <button
+                                key={m.value}
+                                className={`mood-btn ${mood === m.value ? 'active' : ''}`}
+                                onClick={() => setMoodValue(m.value)}
+                                title={m.label}
+                            >
+                                <span className="mood-emoji">{m.emoji}</span>
+                                <span className="mood-text">{m.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="energy-section">
+                    <h3>Energy Level</h3>
+                    <div className="energy-bar">
+                        {[1, 2, 3, 4, 5].map(e => (
+                            <button
+                                key={e}
+                                className={`energy-dot ${energy >= e ? 'active' : ''}`}
+                                onClick={() => setEnergyValue(e)}
+                            >
+                                ⚡
+                            </button>
+                        ))}
+                    </div>
+                    <span className="energy-label">{energy > 0 ? `${energy}/5` : 'Tap to set'}</span>
+                </div>
+            </div>
+
+            {/* Daily Notes */}
+            <div className="daily-notes">
+                <h3>📝 Daily Notes</h3>
+                <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    onBlur={saveNotes}
+                    placeholder="How was your day? Any health observations, meals, activities..."
+                    rows={3}
+                />
             </div>
 
             {/* Calendar Heatmap */}
@@ -274,12 +491,17 @@ export default function Lifestyle() {
                         {log ? (
                             <>
                                 <p className="detail-pct">{log.completion_pct}% completed ({log.completed?.length || 0}/{log.total_goals} goals)</p>
+                                {log.mood && <p className="detail-mood">Mood: {MOODS.find(m => m.value === log.mood)?.emoji || ''} {log.mood} {log.energy ? `· Energy: ${'⚡'.repeat(log.energy)}` : ''}</p>}
+                                {log.notes && <p className="detail-notes">"{log.notes}"</p>}
                                 <div className="detail-tags">
-                                    {goals.map(g => (
-                                        <span key={g.id} className={`tag ${log.completed?.includes(g.id) ? 'tag-done' : 'tag-miss'}`}>
-                                            {g.icon} {g.label}
-                                        </span>
-                                    ))}
+                                    {goals.map(g => {
+                                        const val = log.values?.[g.id]
+                                        return (
+                                            <span key={g.id} className={`tag ${log.completed?.includes(g.id) ? 'tag-done' : 'tag-miss'}`}>
+                                                {g.icon} {g.label}{val != null ? ` (${val} ${g.unit})` : ''}
+                                            </span>
+                                        )
+                                    })}
                                 </div>
                             </>
                         ) : (
@@ -327,7 +549,7 @@ export default function Lifestyle() {
                                     <p>Hi {user?.name?.split(' ')[0]}! 👋 Ask me anything about heart health, diet, exercise, or lifestyle.</p>
                                     <div className="chat-suggestions">
                                         {quickChatSuggestions.map((s, i) => (
-                                            <button key={i} className="suggestion-chip" onClick={() => { setChatInput(s); }}>
+                                            <button key={i} className="suggestion-chip" onClick={() => setChatInput(s)}>
                                                 {s}
                                             </button>
                                         ))}

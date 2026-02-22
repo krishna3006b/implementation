@@ -28,7 +28,7 @@ def get_logs():
     if err:
         return err
 
-    month = request.args.get("month", today_str()[:7])  # e.g. "2026-02"
+    month = request.args.get("month", today_str()[:7])
 
     db = get_db()
     logs = list(
@@ -43,32 +43,69 @@ def get_logs():
 
 @tracker_bp.route("/api/tracker/today", methods=["POST"])
 def update_today():
-    """Toggle goal completion for today. Body: { "completed": ["walk", "water", ...] }"""
+    """Update today's tracking data.
+    Body: {
+        "completed": ["walk", "water", ...],
+        "values": {"walk": 8500, "water": 3, "sleep": 7.5, ...},
+        "notes": "Felt great today, went for a morning jog"
+    }
+    """
     user_id, err = require_auth()
     if err:
         return err
 
     data = request.get_json(force=True)
     completed = data.get("completed", [])
+    values = data.get("values", {})
+    notes = data.get("notes")
+    mood = data.get("mood")       # e.g. "great", "good", "okay", "bad"
+    energy = data.get("energy")   # 1-5
 
     db = get_db()
 
-    # Get total goals count
+    # Get user's goals for computing progress
     goals_doc = db.goals.find_one({"user_id": ObjectId(user_id)})
-    total_goals = len(goals_doc["goals"]) if goals_doc else 10
+    goals = goals_doc["goals"] if goals_doc else []
+    total_goals = len(goals)
 
     date = today_str()
     completion_pct = round((len(completed) / total_goals) * 100) if total_goals > 0 else 0
 
+    # Compute per-goal progress
+    goal_progress = {}
+    for g in goals:
+        gid = g["id"]
+        target = g.get("target", 0)
+        actual = values.get(gid)
+        if actual is not None:
+            if target == 0:
+                # Binary goals (no_smoking, no_junk) — completed = 100%
+                pct = 100 if gid in completed else 0
+            else:
+                pct = min(round((actual / target) * 100), 100)
+            goal_progress[gid] = {"actual": actual, "target": target, "pct": pct}
+        elif gid in completed:
+            goal_progress[gid] = {"actual": target, "target": target, "pct": 100}
+
+    update_set = {
+        "completed": completed,
+        "values": values,
+        "goal_progress": goal_progress,
+        "total_goals": total_goals,
+        "completion_pct": completion_pct,
+        "updated_at": datetime.now(timezone.utc),
+    }
+    if notes is not None:
+        update_set["notes"] = notes
+    if mood is not None:
+        update_set["mood"] = mood
+    if energy is not None:
+        update_set["energy"] = energy
+
     db.daily_logs.update_one(
         {"user_id": ObjectId(user_id), "date": date},
         {
-            "$set": {
-                "completed": completed,
-                "total_goals": total_goals,
-                "completion_pct": completion_pct,
-                "updated_at": datetime.now(timezone.utc),
-            },
+            "$set": update_set,
             "$setOnInsert": {
                 "user_id": ObjectId(user_id),
                 "date": date,
@@ -81,8 +118,12 @@ def update_today():
     return jsonify({
         "date": date,
         "completed": completed,
+        "values": values,
+        "goal_progress": goal_progress,
         "total_goals": total_goals,
         "completion_pct": completion_pct,
+        "mood": mood,
+        "energy": energy,
     })
 
 
@@ -95,7 +136,6 @@ def get_streak():
 
     db = get_db()
 
-    # Get all logs sorted by date descending
     logs = list(
         db.daily_logs.find(
             {"user_id": ObjectId(user_id)},
@@ -106,22 +146,16 @@ def get_streak():
     if not logs:
         return jsonify({"current_streak": 0, "longest_streak": 0, "total_days_tracked": 0})
 
-    # Build a set of dates with >= 80% completion
     good_days = {log["date"] for log in logs if log.get("completion_pct", 0) >= 80}
 
-    # Calculate current streak (consecutive days ending today or yesterday)
     current_streak = 0
     check_date = datetime.now(timezone.utc).date()
-
-    # Allow streak to count from yesterday if today hasn't been logged yet
     if check_date.strftime("%Y-%m-%d") not in good_days:
         check_date -= timedelta(days=1)
-
     while check_date.strftime("%Y-%m-%d") in good_days:
         current_streak += 1
         check_date -= timedelta(days=1)
 
-    # Calculate longest streak
     if not good_days:
         longest_streak = 0
     else:
