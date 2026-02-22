@@ -564,6 +564,53 @@
     border-color: #ff8fab;
 }
 
+/* Save Button */
+.save-day-wrap {
+    margin: 2rem 0;
+    display: flex;
+    justify-content: center;
+}
+
+.save-day-btn {
+    background: linear-gradient(135deg, #00c896, #00ffaa);
+    color: #0a0a1a;
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 8px 25px rgba(0, 255, 170, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.save-day-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0, 255, 170, 0.4);
+}
+
+.save-day-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.save-day-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    background: linear-gradient(135deg, #444, #666);
+    color: #ccc;
+    box-shadow: none;
+}
+
+.save-day-btn.saved {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    box-shadow: 0 8px 25px rgba(46, 204, 113, 0.4);
+}
+
 /* Calendar */
 .calendar-nav {
     display: flex;
@@ -1083,5 +1130,11 @@
 
     .lifestyle-page .section-title {
         font-size: 1.1rem;
+    }
+
+    .save-day-btn {
+        width: 100%;
+        padding: 1rem;
+        justify-content: center;
     }
 }

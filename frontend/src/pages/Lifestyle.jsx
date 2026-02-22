@@ -29,6 +29,7 @@ export default function Lifestyle() {
     const [loading, setLoading] = useState(true)
     const [selectedDay, setSelectedDay] = useState(null)
     const [saving, setSaving] = useState(false)
+    const [saved, setSaved] = useState(false)
 
     // AI states
     const [aiTip, setAiTip] = useState('')
@@ -447,6 +448,25 @@ export default function Lifestyle() {
                     placeholder="How was your day? Any health observations, meals, activities..."
                     rows={3}
                 />
+            </div>
+
+            {/* Save Button */}
+            <div className="save-day-wrap">
+                <button
+                    className={`save-day-btn ${saved ? 'saved' : ''}`}
+                    disabled={saving}
+                    onClick={async () => {
+                        setSaving(true)
+                        setSaved(false)
+                        if (saveTimer.current) clearTimeout(saveTimer.current)
+                        await saveTracking(completed, values, mood, energy, notes)
+                        setSaving(false)
+                        setSaved(true)
+                        setTimeout(() => setSaved(false), 2500)
+                    }}
+                >
+                    {saving ? '💾 Saving...' : saved ? '✅ Saved Successfully!' : '💾 Save Today\'s Progress'}
+                </button>
             </div>
 
             {/* Calendar Heatmap */}
