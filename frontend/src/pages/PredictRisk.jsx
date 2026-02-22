@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import './PredictRisk.css'
 
-const API_URL = 'http://localhost:5001/api/predict'
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+const API_URL = `${API_BASE}/api/predict`
 
 const cpOptions = [
   { label: 'Asymptomatic (No chest pain)', value: 0 },
