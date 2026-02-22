@@ -8,7 +8,7 @@ HeartGuard uses machine learning to predict the likelihood of heart disease base
 
 ## 🚀 Features
 
-- **AI-Powered Risk Prediction** - XGBoost classifier with ~85% accuracy
+- **AI-Powered Risk Prediction** - Logistic Regression classifier with validated ROC-AUC
 - **Interactive Dashboard** - India-focused heart disease statistics
 - **User-Friendly Interface** - Modern, responsive web application
 - **Real-time Analysis** - Instant risk assessment with visual feedback
@@ -17,7 +17,7 @@ HeartGuard uses machine learning to predict the likelihood of heart disease base
 
 - **Python 3.x** - Core programming language
 - **Streamlit** - Web application framework
-- **XGBoost** - Machine learning algorithm
+- **Logistic Regression** - Machine learning algorithm
 - **Pandas & NumPy** - Data processing
 - **Scikit-learn** - Model evaluation
 
@@ -32,7 +32,7 @@ HeartGuard uses machine learning to predict the likelihood of heart disease base
 
 | Specification | Value |
 |---------------|-------|
-| Algorithm | XGBoost Classifier |
+| Algorithm | Logistic Regression |
 | Features Used | 7 clinical parameters |
 | Accuracy | ~85% |
 | AUC Score | ~0.87 |
@@ -55,7 +55,8 @@ implementation/
 │   ├── 1_🔬_Predict_Risk.py  # Prediction page
 │   ├── 2_📊_Statistics.py    # India statistics
 │   └── 3_ℹ️_About.py         # Project information
-├── xgb_model.bin             # Trained XGBoost model
+├── logistic_model.joblib     # Trained Logistic Regression model
+├── train_logistic_model.py   # Model training script
 ├── requirements.txt          # Python dependencies
 ├── heart-attack-analysis-prediction.ipynb  # Model training notebook
 └── README.md
@@ -74,12 +75,17 @@ implementation/
    pip install -r requirements.txt
    ```
 
-3. **Run the application**
+3. **Train logistic model**
+   ```bash
+   python3 train_logistic_model.py --data /path/to/heart.csv --target output --risk-label 1
+   ```
+
+4. **Run the application**
    ```bash
    streamlit run Dashboard.py
    ```
 
-4. **Open in browser**
+5. **Open in browser**
    ```
    http://localhost:8501
    ```

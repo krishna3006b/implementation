@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import xgboost
-import numpy as np
+import joblib
+from pathlib import Path
 
 # Page configuration - sidebar collapsed by default
 st.set_page_config(
@@ -203,9 +203,10 @@ st.markdown("""
 # Load the model
 @st.cache_resource
 def load_model():
-    model = xgboost.Booster()
-    model.load_model('xgb_model.bin')
-    return model
+    model_path = Path("logistic_model.joblib")
+    if not model_path.exists():
+        return None
+    return joblib.load(model_path)
 
 loaded_model = load_model()
 
@@ -237,8 +238,8 @@ with st.sidebar:
     <div style="color: #ffffff;">
         <p style="color: #ff8fab; font-weight: 600; margin-bottom: 0.5rem;">🤖 Model Info</p>
         <p style="color: #e0e0e0; font-size: 0.85rem; line-height: 1.6;">
-        <strong>Algorithm:</strong> XGBoost<br>
-        <strong>Accuracy:</strong> ~85%<br>
+        <strong>Algorithm:</strong> Logistic Regression<br>
+        <strong>Metric:</strong> ROC-AUC validated<br>
         <strong>Features:</strong> 7 clinical parameters
         </p>
     </div>
@@ -341,6 +342,10 @@ with col2:
 
 # Prediction Logic
 if predict_clicked:
+    if loaded_model is None:
+        st.error("No trained model found. Run `python3 train_logistic_model.py --data path/to/heart.csv` first.")
+        st.stop()
+
     features_values = {'age': age, 'trtbps': trtbps, 'chol': chol, 'thalachh': thalachh}
     
     if any(value == 0 for value in features_values.values()):
@@ -355,8 +360,6 @@ if predict_clicked:
             'chol': [chol],
             'thalachh': [thalachh]
         })
-        
-        dtest = xgboost.DMatrix(data)
         
         # Extended loading animation (2.5 seconds)
         import time
@@ -378,7 +381,12 @@ if predict_clicked:
         status_text.empty()
         progress_bar.empty()
         
-        prediction_prob = loaded_model.predict(dtest)[0]
+        model = loaded_model["model"]
+        feature_columns = loaded_model["feature_columns"]
+        model_name = loaded_model.get("model_name", "Logistic Regression")
+
+        data = data[feature_columns]
+        prediction_prob = float(model.predict_proba(data)[0][1])
         prediction = 1 if prediction_prob >= 0.5 else 0
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -406,12 +414,13 @@ if predict_clicked:
         st.markdown("---")
         confidence = abs(0.5 - prediction_prob) * 200
         st.caption(f"Model Confidence: {confidence:.1f}%")
+        st.caption(f"Model Used: {model_name}")
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; padding: 1rem; color: #666;">
-    <p>🫀 Heart Attack Prediction System | XGBoost ML Model</p>
+    <p>🫀 Heart Attack Prediction System | Logistic Regression Model</p>
     <p style="font-size: 0.8rem;">Final Year Major Project</p>
 </div>
 """, unsafe_allow_html=True)

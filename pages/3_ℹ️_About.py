@@ -150,7 +150,7 @@ with st.sidebar:
         <p style="color: #e0e0e0; font-size: 0.85rem; line-height: 1.6;">
         <strong>Type:</strong> Final Year Major Project<br>
         <strong>Topic:</strong> Heart Attack Prediction using ML<br>
-        <strong>Algorithm:</strong> XGBoost Classifier
+        <strong>Algorithm:</strong> Logistic Regression
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -162,7 +162,7 @@ with st.sidebar:
         <p style="color: #ff8fab; font-weight: 600; margin-bottom: 0.5rem;">🔗 Quick Links</p>
         <ul style="color: #e0e0e0; font-size: 0.85rem; line-height: 1.8;">
             <li>UCI Dataset</li>
-            <li>XGBoost Docs</li>
+            <li>Scikit-learn Docs</li>
             <li>Streamlit Docs</li>
         </ul>
     </div>
@@ -205,7 +205,7 @@ st.markdown("""
 <div style="margin-bottom: 1.5rem;">
     <span class="tech-badge">🐍 Python 3.x</span>
     <span class="tech-badge">🚀 Streamlit</span>
-    <span class="tech-badge">🤖 XGBoost</span>
+    <span class="tech-badge">🤖 Logistic Regression</span>
     <span class="tech-badge">📊 Pandas</span>
     <span class="tech-badge">🔢 NumPy</span>
     <span class="tech-badge">📈 Scikit-learn</span>
@@ -222,7 +222,7 @@ with col1:
     <div class="model-card">
         <h4>📊 Model Specifications</h4>
         <ul style="color: #e0e0e0; line-height: 2.2;">
-            <li><strong>Algorithm:</strong> XGBoost Classifier</li>
+            <li><strong>Algorithm:</strong> Logistic Regression</li>
             <li><strong>Training Data:</strong> 303 patients</li>
             <li><strong>Features:</strong> 7 clinical parameters</li>
             <li><strong>Accuracy:</strong> ~85%</li>
@@ -257,7 +257,7 @@ st.markdown("""
     <li><strong>Data Preprocessing</strong> - Cleaning, handling missing values</li>
     <li><strong>Exploratory Data Analysis</strong> - Understanding patterns and correlations</li>
     <li><strong>Feature Selection</strong> - Identifying most predictive features using Mutual Information</li>
-    <li><strong>Model Training</strong> - Comparing Decision Tree, Random Forest, and XGBoost</li>
+    <li><strong>Model Training</strong> - Logistic Regression with cross-validation and calibration checks</li>
     <li><strong>Hyperparameter Tuning</strong> - Optimizing model parameters</li>
     <li><strong>Evaluation</strong> - Using accuracy, AUC score, and cross-validation</li>
     <li><strong>Deployment</strong> - Web application using Streamlit framework</li>
@@ -327,7 +327,7 @@ with col2:
     <div style="color: #ffffff; line-height: 2;">
         <p style="color: #ff8fab; font-weight: 600;">Technical References:</p>
         <ul style="color: #ffffff;">
-            <li>XGBoost Documentation</li>
+            <li>Logistic Regression (Scikit-learn)</li>
             <li>Streamlit Documentation</li>
             <li>Scikit-learn Documentation</li>
         </ul>
