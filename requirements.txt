@@ -8,3 +8,4 @@ joblib
 pymongo[srv]
 PyJWT
 bcrypt
+groq

@@ -53,10 +53,12 @@ def get_artifact():
 from auth_routes import auth_bp
 from goals_routes import goals_bp
 from tracker_routes import tracker_bp
+from ai_routes import ai_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(goals_bp)
 app.register_blueprint(tracker_bp)
+app.register_blueprint(ai_bp)
 
 
 # ---------------------------------------------------------------------------
