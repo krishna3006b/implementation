@@ -6,7 +6,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, roc_auc_score
+from sklearn.metrics import accuracy_score, classification_report, roc_auc_score
 from sklearn.model_selection import StratifiedKFold, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -152,6 +152,17 @@ def main() -> None:
     print("Metrics:")
     for metric_name, value in artifact["metrics"].items():
         print(f"  {metric_name}: {value:.4f}")
+
+    print("\n" + "=" * 60)
+    print("Classification Report")
+    print("=" * 60)
+    print(
+        classification_report(
+            y_test,
+            y_pred,
+            target_names=["No Risk (0)", "Risk (1)"],
+        )
+    )
 
 
 if __name__ == "__main__":
