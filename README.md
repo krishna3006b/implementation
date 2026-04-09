@@ -2,7 +2,7 @@
 
 > A full-stack AI health platform that predicts heart disease risk, provides personalized AI coaching, gamified lifestyle tracking, and voice-first daily logging. Built as a **Final Year Major Project**.
 
-> **Live Frontend** → [implementation-nu.vercel.app](https://implementation-nu.vercel.app)
+> **Live Frontend** → [heartguard-project.vercel.app](https://heartguard-project.vercel.app)
 > **Live Backend API** → [web-production-a175a.up.railway.app](https://web-production-a175a.up.railway.app/api/health)
 
 ---
